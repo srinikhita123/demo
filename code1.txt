@@ -1,0 +1,142 @@
+ IDENTIFICATION DIVISION.                                         
+        PROGRAM-ID. A11PGM4.                                             
+       *MENU SCREEN PROGRAM.                                             
+        DATA DIVISION.                                                   
+        WORKING-STORAGE SECTION.                                         
+            COPY A11MPS2.                                                
+            COPY DFHBMSCA.                                               
+            COPY DFHAID.                                                 
+        01 WS-COMM            PIC X(06).                                 
+        77 WS-ABSTIME         PIC S9(15) COMP-3.                         
+        77 WS-DATE            PIC X(10) VALUE SPACES.                    
+        77 WS-TIME            PIC X(08) VALUE SPACES.                    
+        77 WS-RESP            PIC S9(08) COMP.                           
+        77 WS-LENGTH          PIC S9(04) COMP.                           
+        PROCEDURE DIVISION.                                              
+        000-MAIN-PROCESS.                                                
+            EVALUATE EIBCALEN                                            
+             WHEN 0                                                      
+              MOVE LOW-VALUES TO MENUMAPO                                
+              PERFORM 100-SEND-MAP-PARA                                  
+              MOVE 6 TO WS-LENGTH                                        
+              PERFORM 110-RETURN-PROG-PARA     
+            WHEN 6                                                      
+             PERFORM 200-RECEIVE-MAP-PARA                               
+           END-EVALUATE.                                                
+           PERFORM 500-RETURN-MAP-PARA.                                 
+       100-SEND-MAP-PARA.                                               
+           EXEC CICS ASKTIME                                            
+                ABSTIME(WS-ABSTIME)                                     
+           END-EXEC.                                                    
+           EXEC CICS FORMATTIME                                         
+                ABSTIME(WS-ABSTIME)                                     
+                DDMMYYYY(WS-DATE)                                       
+                DATESEP('-')                                            
+                TIME(WS-TIME)                                           
+                TIMESEP(':')                                            
+           END-EXEC.                                                    
+           MOVE WS-DATE TO DATEO.                                       
+           MOVE WS-TIME TO TIMEO.                                       
+           MOVE DFHBMPRF TO MSGA.                                       
+           EXEC CICS SEND                                               
+                MAP('MENUMAP')                                          
+                MAPSET('A11MPS2')                                       
+                ERASE                                                   
+           END-EXEC.                                             
+       110-RETURN-PROG-PARA.                                            
+           EXEC CICS RETURN                                             
+                TRANSID('A114')                                         
+                COMMAREA(WS-COMM)                                       
+                LENGTH(WS-LENGTH)                                       
+           END-EXEC.                                                    
+       200-RECEIVE-MAP-PARA.                                            
+           EXEC CICS RECEIVE                                            
+                MAP('MENUMAP')                                          
+                MAPSET('A11MPS2')                                       
+                RESP(WS-RESP)                                           
+           END-EXEC.                                                    
+           EVALUATE WS-RESP                                             
+            WHEN DFHRESP(NORMAL)                                        
+             PERFORM 210-KEY-CHK-PARA                                   
+            WHEN DFHRESP(MAPFAIL)                                       
+             MOVE LOW-VALUES TO MENUMAPO                                
+             MOVE 'PLEASE ENTER VALID CHOICE(1/2/3/4)' TO MSGO          
+             MOVE DFHBMPRF TO MSGA                                      
+             PERFORM 100-SEND-MAP-PARA                                  
+             MOVE 6 TO WS-LENGTH                                        
+             PERFORM 110-RETURN-PROG-PARA                               
+            WHEN DFHRESP(LENGERR)                                       
+             MOVE 'INVALID LENGTH' TO MSGO                              
+             PERFORM 500-RETURN-MAP-PARA  
+           END-EVALUATE.                                              
+       210-KEY-CHK-PARA.                                              
+           EVALUATE EIBAID                                            
+            WHEN DFHENTER                                             
+             PERFORM 220-VALIDATION-PARA                              
+            WHEN DFHPF3                                               
+             PERFORM 300-EXIT-PARA                                    
+            WHEN DFHPF5                                               
+             PERFORM 310-CLEAR-PARA                                   
+            WHEN DFHPF1                                               
+             PERFORM 320-HELP-PARA                                    
+            WHEN OTHER                                                
+             PERFORM 330-INVALID-FUN-PARA                             
+           END-EVALUATE.                                              
+       300-EXIT-PARA.                                                 
+           MOVE LOW-VALUES TO MENUMAPO.                               
+           MOVE 'THANK YOU!!!' TO MSGO.                               
+           PERFORM 100-SEND-MAP-PARA.                                 
+           PERFORM 500-RETURN-MAP-PARA.                               
+       310-CLEAR-PARA.                                                
+           MOVE LOW-VALUES TO MENUMAPO.                               
+           MOVE 'PLEASE ENTER VALID CHOICE(1/2/3/4)' TO MSGO.         
+           PERFORM 100-SEND-MAP-PARA.                                 
+           MOVE 6 TO WS-LENGTH. 
+           PERFORM 110-RETURN-PROG-PARA.                                
+       320-HELP-PARA.                                                   
+           MOVE LOW-VALUES TO MENUMAPO.                                 
+           MOVE 'HELP NOT AVAILABLE' TO MSGO.                           
+           PERFORM 100-SEND-MAP-PARA.                                   
+           MOVE 6 TO WS-LENGTH.                                         
+           PERFORM 110-RETURN-PROG-PARA.                                
+       330-INVALID-FUN-PARA.                                            
+           MOVE LOW-VALUES TO MENUMAPO.                                 
+           MOVE 'INVALID FUNCTION PRESSED' TO MSGO.                     
+           PERFORM 100-SEND-MAP-PARA.                                   
+           MOVE 6 TO WS-LENGTH.                                         
+           PERFORM 110-RETURN-PROG-PARA.                                
+      **************************************************                
+      *VALIDATION OF CHOICE TO NAVIGATE TO OTHER SCREEN                 
+      **************************************************                
+       220-VALIDATION-PARA.                                             
+           IF CHOICEL > 0                                               
+            EVALUATE CHOICEI                                            
+             WHEN 1                                                     
+              EXEC CICS XCTL                                            
+                   PROGRAM('A11PGM3')                                   
+              END-EXEC 
+              WHEN 2                                                     
+               EXEC CICS XCTL                                            
+                    PROGRAM('A11PGM1')                                   
+               END-EXEC                                                  
+              WHEN 3                                                     
+               EXEC CICS XCTL                                            
+                    PROGRAM('A11PGM5')                                   
+               END-EXEC                                                  
+              WHEN 4                                                     
+               EXEC CICS XCTL                                            
+                    PROGRAM('A11PGM2')                                   
+               END-EXEC                                                  
+              WHEN OTHER                                                 
+               MOVE 'INVALID CHOICE ALLOWED ONLY (1/2/3/4)' TO MSGO      
+             END-EVALUATE                                                
+            ELSE                                                         
+             MOVE 'PLEASE ENTER VALID CHOICE(1/2/3/4)' TO MSGO           
+            END-IF.                                                      
+            PERFORM 100-SEND-MAP-PARA.                                   
+            MOVE 6 TO WS-LENGTH.                                         
+            PERFORM 110-RETURN-PROG-PARA.                                
+        500-RETURN-MAP-PARA.                                             
+            EXEC CICS                                                    
+                RETURN                                                   
+            END-EXEC.                 
