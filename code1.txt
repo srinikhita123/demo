@@ -106,7 +106,7 @@
            MOVE 6 TO WS-LENGTH.                                         
            PERFORM 110-RETURN-PROG-PARA.                                
       **************************************************                
-      *VALIDATION OF CHOICE TO NAVIGATE TO OTHER SCREEN                 
+      *VALIDATION OF CHOICE TO NAVIGATE TO OTHER                
       **************************************************                
        220-VALIDATION-PARA.                                             
            IF CHOICEL > 0                                               
